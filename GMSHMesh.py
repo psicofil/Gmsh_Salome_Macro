@@ -19,7 +19,14 @@ import salome
 from platform import system
 import subprocess
 import tempfile
-from PyQt4 import QtGui,QtCore
+try:
+    from PyQt4 import QtGui,QtCore
+    from PyQt4.QtGui import *
+    from PyQt4.QtCore import *
+except:
+    from PyQt5.QtWidgets import *
+    from PyQt5.QtCore import Qt
+
 import GEOM
 from salome.geom import geomBuilder
 import math
@@ -42,7 +49,7 @@ else:
     gmsh_bin = gmsh_bin_other
     path_sep = "/"
 
-class MeshGmsh(QtGui.QWidget):
+class MeshGmsh(QWidget):
     def __init__(self):
         super(MeshGmsh, self).__init__()
         self.initUI()
@@ -50,55 +57,55 @@ class MeshGmsh(QtGui.QWidget):
         return
     def initUI(self):
         # Mesh dimension
-        self.rb_1D = QtGui.QRadioButton("   1D", self)
-        self.rb_2D = QtGui.QRadioButton("   2D", self)
-        self.rb_3D = QtGui.QRadioButton("   3D", self)
-        self.rb_3D.setChecked(QtCore.Qt.Checked)
+        self.rb_1D = QRadioButton("   1D", self)
+        self.rb_2D = QRadioButton("   2D", self)
+        self.rb_3D = QRadioButton("   3D", self)
+        self.rb_3D.setChecked(Qt.Checked)
         # Optimized:
-        self.cb_optimized = QtGui.QCheckBox("    Optimized", self)
-        self.cb_optimized.setChecked(QtCore.Qt.Checked)
+        self.cb_optimized = QCheckBox("    Optimized", self)
+        self.cb_optimized.setChecked(Qt.Checked)
         # Algorithm:
-        self.l_algorithm = QtGui.QLabel("Algorithm ", self)
-        self.cmb_algorithm = QtGui.QComboBox(self)
+        self.l_algorithm = QLabel("Algorithm ", self)
+        self.cmb_algorithm = QComboBox(self)
         self.algorithm_list = [self.tr('iso'), self.tr('netgen'), self.tr('front2d'), self.tr('meshadapt'), self.tr('delquad'), self.tr('del3d'), self.tr('del2d'), self.tr('front3d'), self.tr('mmg3d'), self.tr('pack'), self.tr('tetgen'),]
         self.cmb_algorithm.addItems(self.algorithm_list)
         self.cmb_algorithm.setCurrentIndex(1)
         # Element max size:
-        self.cb_max_elme_size = QtGui.QCheckBox("  Set maximum mesh element size",self)
-        self.cb_max_elme_size.setChecked(QtCore.Qt.Checked)
-        self.sb_max_element_size = QtGui.QDoubleSpinBox(self)
+        self.cb_max_elme_size = QCheckBox("  Set maximum mesh element size",self)
+        self.cb_max_elme_size.setChecked(Qt.Checked)
+        self.sb_max_element_size = QDoubleSpinBox(self)
         self.sb_max_element_size.setValue(20.0)
         self.sb_max_element_size.setMaximum(10000000.0)
         self.sb_max_element_size.setMinimum(0.00000001)
         # Element min size:
-        self.cb_min_elme_size = QtGui.QCheckBox("  Set minimum mesh element size",self)
-        self.sb_min_element_size = QtGui.QDoubleSpinBox(self)
+        self.cb_min_elme_size = QCheckBox("  Set minimum mesh element size",self)
+        self.sb_min_element_size = QDoubleSpinBox(self)
         self.sb_min_element_size.setValue(5.0)
         self.sb_min_element_size.setMaximum(10000000.0)
         self.sb_min_element_size.setMinimum(0.00000001)
         self.sb_min_element_size.setEnabled(False)
         # Set Mesh Order:
-        self.cb_mesh_order = QtGui.QCheckBox("  mesh order",self)
-        self.sb_mesh_order = QtGui.QSpinBox(self)
+        self.cb_mesh_order = QCheckBox("  mesh order",self)
+        self.sb_mesh_order = QSpinBox(self)
         self.sb_mesh_order.setValue(2)
         self.sb_mesh_order.setMaximum(5)
         self.sb_mesh_order.setMinimum(1)
         # Interactive Follow up:
-        self.cb_interact = QtGui.QCheckBox("    Interactive Follow up", self)
-        self.cb_interact.setChecked(QtCore.Qt.Checked)
+        self.cb_interact = QCheckBox("    Interactive Follow up", self)
+        self.cb_interact.setChecked(Qt.Checked)
         # Other gmsh commands:
-        self.l_cmd_line_opt = QtGui.QLabel("Custom gmsh options ", self)
-        self.le_cmd_line_opt = QtGui.QLineEdit(self)
+        self.l_cmd_line_opt = QLabel("Custom gmsh options ", self)
+        self.le_cmd_line_opt = QLineEdit(self)
         self.le_cmd_line_opt.setToolTip("Those option will be appended to gmsh command line call")
         # Ok buttons:
-        self.okbox = QtGui.QDialogButtonBox(self)
-        self.okbox.setOrientation(QtCore.Qt.Horizontal)
-        self.okbox.setStandardButtons(QtGui.QDialogButtonBox.Cancel | QtGui.QDialogButtonBox.Ok)
+        self.okbox = QDialogButtonBox(self)
+        self.okbox.setOrientation(Qt.Horizontal)
+        self.okbox.setStandardButtons(QDialogButtonBox.Cancel | QDialogButtonBox.Ok)
         # Web button
-        self.pb_web = QtGui.QPushButton(self)
+        self.pb_web = QPushButton(self)
         self.pb_web.setText("gmsh options (web)")
         # Layout:
-        layout = QtGui.QGridLayout()
+        layout = QGridLayout()
         layout.addWidget(self.rb_1D, 1, 0)
         layout.addWidget(self.rb_2D, 1, 1)
         layout.addWidget(self.rb_3D, 2, 0)
@@ -118,27 +125,27 @@ class MeshGmsh(QtGui.QWidget):
         layout.addWidget(self.okbox, 9, 1)
         self.setLayout(layout)
         # Connectors:
-        QtCore.QObject.connect(self.okbox, QtCore.SIGNAL("accepted()"), self.proceed)
-        QtCore.QObject.connect(self.okbox, QtCore.SIGNAL("rejected()"), self.cancel)
+        self.okbox.accepted.connect(self.proceed)
+        self.okbox.rejected.connect(self.cancel)
         self.pb_web.clicked.connect(self.open_gmsh_options)
         self.cb_max_elme_size.stateChanged.connect(self.max_size_state)
         self.cb_min_elme_size.stateChanged.connect(self.min_size_state)
         self.cb_mesh_order.stateChanged.connect(self.mesh_order_state)
         
     def max_size_state(self, state):   
-        if state == QtCore.Qt.Checked:
+        if state == Qt.Checked:
             self.sb_max_element_size.setEnabled(True)
         else:
             self.sb_max_element_size.setEnabled(False)
             
     def min_size_state(self, state):
-        if state == QtCore.Qt.Checked:
+        if state == Qt.Checked:
             self.sb_min_element_size.setEnabled(True)
         else:
             self.sb_min_element_size.setEnabled(False)
             
     def mesh_order_state(self, state):   
-        if state == QtCore.Qt.Checked:
+        if state == Qt.Checked:
             self.sb_mesh_order.setEnabled(True)
         else:
             self.sb_mesh_order.setEnabled(False)
@@ -156,7 +163,7 @@ class MeshGmsh(QtGui.QWidget):
         selected = salome.sg.getSelected(0)
         selection = salome.myStudy.FindObjectID(selected).GetObject()
         if not selection:
-            QtGui.QMessageBox.critical(None, "GMSHMesh macro", "An object has to be selected to run gmsh!")
+            QMessageBox.critical(None, "GMSHMesh macro", "An object has to be selected to run gmsh!")
         ## Export a part in step format
         geompy.ExportBREP(selection, temp_file)
         selection_name = selection.GetName()
@@ -213,7 +220,7 @@ class MeshGmsh(QtGui.QWidget):
             #d.close()
             print "Succefull"
         except:
-            QtGui.QMessageBox.critical(None, "GMSHMesh macro", "Unexpected error in GMSHMesh macro!")
+            QMessageBox.critical(None, "GMSHMesh macro", "Unexpected error in GMSHMesh macro!")
         finally:
             try:
                 del temp_file
@@ -226,10 +233,10 @@ class MeshGmsh(QtGui.QWidget):
 
 
 
-d = QtGui.QDockWidget()
+d = QDockWidget()
 d.setWidget(MeshGmsh())
 d.toggleViewAction().setText("Gmsh")
-d.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+d.setAttribute(Qt.WA_DeleteOnClose)
 d.setWindowTitle(" GMSH Mesh Generator ")
 d.setGeometry(600, 300, 400, 600)
 d.show()
